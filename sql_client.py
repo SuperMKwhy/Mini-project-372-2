@@ -29,7 +29,7 @@ END
 
 UPSERT_SQL = """
 MERGE inventory_stock AS target
-USING (VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)) AS source (
+USING (VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)) AS source (
     odoo_id, product_id, product_name, product_code,
     location_id, location_name,
     quantity, reserved_quantity, odoo_write_date
