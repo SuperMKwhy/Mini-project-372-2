@@ -7,6 +7,34 @@ from sql_client import SqlClient
 app = func.FunctionApp()
 
 
+@app.function_name(name="SyncOrders")
+@app.route(route="sync-orders", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
+def sync_orders(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("SyncOrders triggered.")
+
+    try:
+        odoo = OdooClient.from_env()
+        orders = odoo.get_sale_orders()
+        lines = odoo.get_sale_order_lines()
+        logging.info(f"Fetched {len(orders)} sale orders, {len(lines)} order lines from Odoo.")
+
+        sql = SqlClient.from_env()
+        sql.ensure_sale_tables()
+        upserted_orders = sql.upsert_sale_orders(orders)
+        upserted_lines = sql.upsert_sale_order_lines(lines)
+        logging.info(f"Upserted {upserted_orders} orders, {upserted_lines} lines into Azure SQL.")
+
+        return func.HttpResponse(
+            f"Done. Fetched {len(orders)} orders and {len(lines)} lines, "
+            f"upserted {upserted_orders} orders and {upserted_lines} lines.",
+            status_code=200,
+        )
+
+    except Exception as exc:
+        logging.exception("SyncOrders failed.")
+        return func.HttpResponse(f"Error: {exc}", status_code=500)
+
+
 @app.function_name(name="SyncInventory")
 @app.route(route="sync-inventory", methods=["GET"], auth_level=func.AuthLevel.FUNCTION)
 def sync_inventory(req: func.HttpRequest) -> func.HttpResponse:

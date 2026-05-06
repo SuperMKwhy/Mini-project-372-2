@@ -7,6 +7,34 @@ from typing import Any
 
 
 @dataclass
+class SaleOrder:
+    odoo_id: int
+    name: str
+    partner_id: int
+    partner_name: str
+    state: str
+    date_order: str
+    amount_untaxed: float
+    amount_tax: float
+    amount_total: float
+    write_date: str
+
+
+@dataclass
+class SaleOrderLine:
+    odoo_id: int
+    order_id: int
+    order_name: str
+    product_id: int
+    product_name: str
+    product_code: str
+    qty: float
+    price_unit: float
+    price_subtotal: float
+    write_date: str
+
+
+@dataclass
 class StockQuant:
     odoo_id: int
     product_id: int
@@ -71,6 +99,62 @@ class OdooClient:
     # Public helpers
     # ------------------------------------------------------------------
 
+    def get_sale_orders(
+        self,
+        domain: list | None = None,
+        limit: int = 0,
+    ) -> list[SaleOrder]:
+        """Fetch sale.order records (quotations + confirmed orders)."""
+        if domain is None:
+            domain = [("state", "!=", "cancel")]
+
+        uid = self._get_uid()
+        models = self._models()
+
+        kwargs: dict[str, Any] = {
+            "fields": ["id", "name", "partner_id", "state", "date_order",
+                       "amount_untaxed", "amount_tax", "amount_total", "write_date"],
+        }
+        if limit:
+            kwargs["limit"] = limit
+
+        raw: list[dict] = models.execute_kw(
+            self.db, uid, self.api_key,
+            "sale.order", "search_read",
+            [domain],
+            kwargs,
+        )
+
+        return [_parse_sale_order(r) for r in raw]
+
+    def get_sale_order_lines(
+        self,
+        domain: list | None = None,
+        limit: int = 0,
+    ) -> list[SaleOrderLine]:
+        """Fetch sale.order.line records."""
+        if domain is None:
+            domain = [("order_id.state", "!=", "cancel")]
+
+        uid = self._get_uid()
+        models = self._models()
+
+        kwargs: dict[str, Any] = {
+            "fields": ["id", "order_id", "product_id",
+                       "product_uom_qty", "price_unit", "price_subtotal", "write_date"],
+        }
+        if limit:
+            kwargs["limit"] = limit
+
+        raw: list[dict] = models.execute_kw(
+            self.db, uid, self.api_key,
+            "sale.order.line", "search_read",
+            [domain],
+            kwargs,
+        )
+
+        return [_parse_sale_order_line(r) for r in raw]
+
     def get_stock_quants(
         self,
         domain: list | None = None,
@@ -106,6 +190,41 @@ class OdooClient:
 # ------------------------------------------------------------------
 # Private helpers
 # ------------------------------------------------------------------
+
+def _parse_sale_order(raw: dict) -> SaleOrder:
+    partner = raw.get("partner_id") or [0, ""]
+    return SaleOrder(
+        odoo_id=raw["id"],
+        name=str(raw.get("name") or ""),
+        partner_id=partner[0],
+        partner_name=partner[1] if len(partner) > 1 else "",
+        state=str(raw.get("state") or ""),
+        date_order=str(raw.get("date_order") or ""),
+        amount_untaxed=float(raw.get("amount_untaxed") or 0),
+        amount_tax=float(raw.get("amount_tax") or 0),
+        amount_total=float(raw.get("amount_total") or 0),
+        write_date=str(raw.get("write_date") or ""),
+    )
+
+
+def _parse_sale_order_line(raw: dict) -> SaleOrderLine:
+    order = raw.get("order_id") or [0, ""]
+    product = raw.get("product_id") or [0, ""]
+    product_display: str = product[1] if len(product) > 1 else ""
+    code, name = _split_product_display(product_display)
+    return SaleOrderLine(
+        odoo_id=raw["id"],
+        order_id=order[0],
+        order_name=order[1] if len(order) > 1 else "",
+        product_id=product[0],
+        product_name=name,
+        product_code=code,
+        qty=float(raw.get("product_uom_qty") or 0),
+        price_unit=float(raw.get("price_unit") or 0),
+        price_subtotal=float(raw.get("price_subtotal") or 0),
+        write_date=str(raw.get("write_date") or ""),
+    )
+
 
 def _parse_quant(raw: dict) -> StockQuant:
     product = raw.get("product_id") or [0, ""]
