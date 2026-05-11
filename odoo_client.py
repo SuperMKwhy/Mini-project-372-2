@@ -30,7 +30,7 @@ class SaleOrderLine:
     product_code: str
     qty: float
     price_unit: float
-    purchase_price: float
+    cost: float
     price_subtotal: float
     write_date: str
 
@@ -142,7 +142,7 @@ class OdooClient:
 
         kwargs: dict[str, Any] = {
             "fields": ["id", "order_id", "product_id",
-                       "product_uom_qty", "price_unit", "purchase_price", "price_subtotal", "write_date"],
+                       "product_uom_qty", "price_unit", "price_subtotal", "write_date"],
         }
         if limit:
             kwargs["limit"] = limit
@@ -154,7 +154,18 @@ class OdooClient:
             kwargs,
         )
 
-        return [_parse_sale_order_line(r) for r in raw]
+        product_ids = list({r["product_id"][0] for r in raw if r.get("product_id")})
+        cost_map: dict[int, float] = {}
+        if product_ids:
+            products = models.execute_kw(
+                self.db, uid, self.api_key,
+                "product.product", "read",
+                [product_ids],
+                {"fields": ["id", "standard_price"]},
+            )
+            cost_map = {p["id"]: float(p.get("standard_price") or 0) for p in products}
+
+        return [_parse_sale_order_line(r, cost_map) for r in raw]
 
     def get_stock_quants(
         self,
@@ -208,21 +219,22 @@ def _parse_sale_order(raw: dict) -> SaleOrder:
     )
 
 
-def _parse_sale_order_line(raw: dict) -> SaleOrderLine:
+def _parse_sale_order_line(raw: dict, cost_map: dict[int, float] | None = None) -> SaleOrderLine:
     order = raw.get("order_id") or [0, ""]
     product = raw.get("product_id") or [0, ""]
     product_display: str = product[1] if len(product) > 1 else ""
     code, name = _split_product_display(product_display)
+    product_id = product[0]
     return SaleOrderLine(
         odoo_id=raw["id"],
         order_id=order[0],
         order_name=order[1] if len(order) > 1 else "",
-        product_id=product[0],
+        product_id=product_id,
         product_name=name,
         product_code=code,
         qty=float(raw.get("product_uom_qty") or 0),
         price_unit=float(raw.get("price_unit") or 0),
-        purchase_price=float(raw.get("purchase_price") or 0),
+        cost=(cost_map or {}).get(product_id, 0.0),
         price_subtotal=float(raw.get("price_subtotal") or 0),
         write_date=str(raw.get("write_date") or ""),
     )

@@ -43,7 +43,7 @@ BEGIN
         product_code    NVARCHAR(100) NOT NULL,
         qty             FLOAT         NOT NULL,
         price_unit      FLOAT         NOT NULL,
-        purchase_price  FLOAT         NOT NULL,
+        cost            FLOAT         NOT NULL,
         price_subtotal  FLOAT         NOT NULL,
         odoo_write_date NVARCHAR(50)  NOT NULL,
         synced_at       DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME()
@@ -89,7 +89,7 @@ MERGE sale_order_line AS target
 USING (VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)) AS source (
     odoo_id, order_id, order_name,
     product_id, product_name, product_code,
-    qty, price_unit, purchase_price, price_subtotal, odoo_write_date
+    qty, price_unit, cost, price_subtotal, odoo_write_date
 )
 ON target.odoo_id = source.odoo_id
 WHEN MATCHED THEN
@@ -101,7 +101,7 @@ WHEN MATCHED THEN
         product_code    = source.product_code,
         qty             = source.qty,
         price_unit      = source.price_unit,
-        purchase_price  = source.purchase_price,
+        cost            = source.cost,
         price_subtotal  = source.price_subtotal,
         odoo_write_date = source.odoo_write_date,
         synced_at       = SYSUTCDATETIME()
@@ -109,12 +109,12 @@ WHEN NOT MATCHED THEN
     INSERT (
         odoo_id, order_id, order_name,
         product_id, product_name, product_code,
-        qty, price_unit, purchase_price, price_subtotal, odoo_write_date
+        qty, price_unit, cost, price_subtotal, odoo_write_date
     )
     VALUES (
         source.odoo_id, source.order_id, source.order_name,
         source.product_id, source.product_name, source.product_code,
-        source.qty, source.price_unit, source.purchase_price, source.price_subtotal, source.odoo_write_date
+        source.qty, source.price_unit, source.cost, source.price_subtotal, source.odoo_write_date
     );
 """
 
@@ -236,7 +236,7 @@ class SqlClient:
             (
                 r.odoo_id, r.order_id, r.order_name,
                 r.product_id, r.product_name, r.product_code,
-                r.qty, r.price_unit, r.purchase_price, r.price_subtotal, r.write_date,
+                r.qty, r.price_unit, r.cost, r.price_subtotal, r.write_date,
             )
             for r in records
         ]
