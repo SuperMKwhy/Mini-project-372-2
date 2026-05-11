@@ -88,26 +88,67 @@ Done. Fetched 142 records, upserted 142 rows.
 
 ---
 
-## Azure SQL Table
+## Azure SQL Tables
 
-The function auto-creates the table on first run if it does not exist.
+The function auto-creates all tables on first run if they do not exist.
 
-```sql
-CREATE TABLE inventory_stock (
-    odoo_id            INT           NOT NULL PRIMARY KEY,
-    product_id         INT           NOT NULL,
-    product_name       NVARCHAR(255) NOT NULL,
-    product_code       NVARCHAR(100) NOT NULL,
-    location_id        INT           NOT NULL,
-    location_name      NVARCHAR(255) NOT NULL,
-    quantity           FLOAT         NOT NULL,
-    reserved_quantity  FLOAT         NOT NULL,
-    odoo_write_date    NVARCHAR(50)  NOT NULL,
-    synced_at          DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME()
-);
+### Entity Relationship Diagram
+
+```mermaid
+erDiagram
+    sale_order {
+        INT odoo_id PK
+        NVARCHAR name
+        INT partner_id
+        NVARCHAR partner_name
+        NVARCHAR state
+        NVARCHAR date_order
+        FLOAT amount_untaxed
+        FLOAT amount_tax
+        FLOAT amount_total
+        NVARCHAR odoo_write_date
+        DATETIME2 synced_at
+    }
+
+    sale_order_line {
+        INT odoo_id PK
+        INT order_id FK
+        NVARCHAR order_name
+        INT product_id
+        NVARCHAR product_name
+        NVARCHAR product_code
+        FLOAT qty
+        FLOAT price_unit
+        FLOAT price_subtotal
+        NVARCHAR odoo_write_date
+        DATETIME2 synced_at
+    }
+
+    inventory_stock {
+        INT odoo_id PK
+        INT product_id
+        NVARCHAR product_name
+        NVARCHAR product_code
+        INT location_id
+        NVARCHAR location_name
+        FLOAT quantity
+        FLOAT reserved_quantity
+        NVARCHAR odoo_write_date
+        DATETIME2 synced_at
+    }
+
+    sale_order ||--o{ sale_order_line : "has"
 ```
 
-Upsert key: `odoo_id` — re-running the function is safe and idempotent.
+### Table Descriptions
+
+| Table | Synced by | Description |
+|---|---|---|
+| `inventory_stock` | `GET /api/sync-inventory` | Current stock levels per product per location |
+| `sale_order` | `GET /api/sync-orders` | Sale order / quotation headers per customer |
+| `sale_order_line` | `GET /api/sync-orders` | Individual product lines within each sale order |
+
+Upsert key for all tables: `odoo_id` — re-running is safe and idempotent.
 
 ---
 

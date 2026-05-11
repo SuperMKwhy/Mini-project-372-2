@@ -30,6 +30,7 @@ class SaleOrderLine:
     product_code: str
     qty: float
     price_unit: float
+    purchase_price: float
     price_subtotal: float
     write_date: str
 
@@ -141,7 +142,7 @@ class OdooClient:
 
         kwargs: dict[str, Any] = {
             "fields": ["id", "order_id", "product_id",
-                       "product_uom_qty", "price_unit", "price_subtotal", "write_date"],
+                       "product_uom_qty", "price_unit", "purchase_price", "price_subtotal", "write_date"],
         }
         if limit:
             kwargs["limit"] = limit
@@ -221,6 +222,7 @@ def _parse_sale_order_line(raw: dict) -> SaleOrderLine:
         product_code=code,
         qty=float(raw.get("product_uom_qty") or 0),
         price_unit=float(raw.get("price_unit") or 0),
+        purchase_price=float(raw.get("purchase_price") or 0),
         price_subtotal=float(raw.get("price_subtotal") or 0),
         write_date=str(raw.get("write_date") or ""),
     )
