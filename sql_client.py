@@ -19,6 +19,7 @@ BEGIN
         partner_name    NVARCHAR(255) NOT NULL,
         state           NVARCHAR(50)  NOT NULL,
         date_order      DATETIME2     NOT NULL,
+        picking_id      INT           NOT NULL,
         amount_untaxed  FLOAT         NOT NULL,
         amount_tax      FLOAT         NOT NULL,
         amount_total    FLOAT         NOT NULL,
@@ -53,9 +54,9 @@ END
 
 UPSERT_SALE_ORDER_SQL = """
 MERGE sale_order AS target
-USING (VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)) AS source (
+USING (VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)) AS source (
     odoo_id, name, partner_id, partner_name,
-    state, date_order,
+    state, date_order, picking_id,
     amount_untaxed, amount_tax, amount_total, odoo_write_date
 )
 ON target.odoo_id = source.odoo_id
@@ -66,6 +67,7 @@ WHEN MATCHED THEN
         partner_name    = source.partner_name,
         state           = source.state,
         date_order      = source.date_order,
+        picking_id      = source.picking_id,
         amount_untaxed  = source.amount_untaxed,
         amount_tax      = source.amount_tax,
         amount_total    = source.amount_total,
@@ -74,12 +76,12 @@ WHEN MATCHED THEN
 WHEN NOT MATCHED THEN
     INSERT (
         odoo_id, name, partner_id, partner_name,
-        state, date_order,
+        state, date_order, picking_id,
         amount_untaxed, amount_tax, amount_total, odoo_write_date
     )
     VALUES (
         source.odoo_id, source.name, source.partner_id, source.partner_name,
-        source.state, source.date_order,
+        source.state, source.date_order, source.picking_id,
         source.amount_untaxed, source.amount_tax, source.amount_total, source.odoo_write_date
     );
 """
@@ -218,7 +220,7 @@ class SqlClient:
         rows = [
             (
                 r.odoo_id, r.name, r.partner_id, r.partner_name,
-                r.state, r.date_order,
+                r.state, r.date_order, r.picking_id,
                 r.amount_untaxed, r.amount_tax, r.amount_total, r.write_date,
             )
             for r in records

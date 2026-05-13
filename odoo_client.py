@@ -15,6 +15,7 @@ class SaleOrder:
     partner_name: str
     state: str
     date_order: datetime
+    picking_id: int
     amount_untaxed: float
     amount_tax: float
     amount_total: float
@@ -115,7 +116,7 @@ class OdooClient:
 
         kwargs: dict[str, Any] = {
             "fields": ["id", "name", "partner_id", "state", "date_order",
-                       "amount_untaxed", "amount_tax", "amount_total", "write_date"],
+                       "picking_ids", "amount_untaxed", "amount_tax", "amount_total", "write_date"],
         }
         if limit:
             kwargs["limit"] = limit
@@ -213,6 +214,7 @@ def _parse_sale_order(raw: dict) -> SaleOrder:
         partner_name=partner[1] if len(partner) > 1 else "",
         state=str(raw.get("state") or ""),
         date_order=datetime.fromisoformat(str(raw.get("date_order") or "")),
+        picking_id=int((raw.get("picking_ids") or [0])[0]),
         amount_untaxed=float(raw.get("amount_untaxed") or 0),
         amount_tax=float(raw.get("amount_tax") or 0),
         amount_total=float(raw.get("amount_total") or 0),
