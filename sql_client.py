@@ -224,7 +224,7 @@ class SqlClient:
                 r.state, r.date_order, r.picking_id,
                 r.amount_untaxed, r.amount_tax, r.amount_total, r.write_date,
             )
-            for r in records
+            for r in sorted(records, key=lambda r: r.odoo_id)
         ]
         with self._connect() as conn:
             cursor = conn.cursor()
