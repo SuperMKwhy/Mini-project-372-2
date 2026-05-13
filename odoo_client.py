@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 import xmlrpc.client
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Any
 
 
@@ -13,7 +14,7 @@ class SaleOrder:
     partner_id: int
     partner_name: str
     state: str
-    date_order: str
+    date_order: datetime
     amount_untaxed: float
     amount_tax: float
     amount_total: float
@@ -211,7 +212,7 @@ def _parse_sale_order(raw: dict) -> SaleOrder:
         partner_id=partner[0],
         partner_name=partner[1] if len(partner) > 1 else "",
         state=str(raw.get("state") or ""),
-        date_order=str(raw.get("date_order") or ""),
+        date_order=datetime.fromisoformat(str(raw.get("date_order") or "")),
         amount_untaxed=float(raw.get("amount_untaxed") or 0),
         amount_tax=float(raw.get("amount_tax") or 0),
         amount_total=float(raw.get("amount_total") or 0),

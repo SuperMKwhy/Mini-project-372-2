@@ -18,7 +18,7 @@ BEGIN
         partner_id      INT           NOT NULL,
         partner_name    NVARCHAR(255) NOT NULL,
         state           NVARCHAR(50)  NOT NULL,
-        date_order      NVARCHAR(50)  NOT NULL,
+        date_order      DATETIME2     NOT NULL,
         amount_untaxed  FLOAT         NOT NULL,
         amount_tax      FLOAT         NOT NULL,
         amount_total    FLOAT         NOT NULL,
