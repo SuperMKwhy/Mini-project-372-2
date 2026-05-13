@@ -13,7 +13,8 @@ IF NOT EXISTS (
 )
 BEGIN
     CREATE TABLE sale_order (
-        odoo_id         INT           NOT NULL PRIMARY KEY,
+        id              INT           NOT NULL IDENTITY(1,1) PRIMARY KEY,
+        odoo_id         INT           NOT NULL UNIQUE,
         name            NVARCHAR(100) NOT NULL,
         partner_id      INT           NOT NULL,
         partner_name    NVARCHAR(255) NOT NULL,
