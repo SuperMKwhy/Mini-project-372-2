@@ -94,3 +94,28 @@ def ingest_transaction(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as exc:
         logging.exception("IngestTransaction failed.")
         return func.HttpResponse(f"Error: {exc}", status_code=500)
+
+
+@app.function_name(name="OdooS3Notify")
+@app.route(route="odoo-s3-notify", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+def odoo_s3_notify(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("OdooS3Notify triggered.")
+
+    try:
+        body = req.get_json()
+    except ValueError:
+        return func.HttpResponse("Invalid JSON body.", status_code=400)
+
+    picking_id = body.get("picking_id")
+    if not picking_id:
+        return func.HttpResponse("Missing required field: picking_id.", status_code=400)
+
+    try:
+        odoo = OdooClient.from_env()
+        odoo.notify_picking_done(int(picking_id))
+        logging.info(f"stock.picking {picking_id} updated to PLC_DONE.")
+        return func.HttpResponse("OK", status_code=200)
+
+    except Exception as exc:
+        logging.exception("OdooS3Notify failed.")
+        return func.HttpResponse(f"Error: {exc}", status_code=500)

@@ -169,6 +169,14 @@ class OdooClient:
 
         return [_parse_sale_order_line(r, cost_map) for r in raw]
 
+    def notify_picking_done(self, picking_id: int) -> None:
+        uid = self._get_uid()
+        self._models().execute_kw(
+            self.db, uid, self.api_key,
+            "stock.picking", "write",
+            [[picking_id], {"note": "PLC_DONE"}],
+        )
+
     def get_stock_quants(
         self,
         domain: list | None = None,
