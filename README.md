@@ -173,3 +173,13 @@ After deploying, set all environment variables under:
 - [ ] Timer trigger (scheduled sync)
 - [ ] Support for additional Odoo models (products, orders, etc.)
 - [ ] Error alerting (email / Teams webhook)
+
+To disable/enable the triggers:
+
+  -- Disable both
+  DISABLE TRIGGER trg_S3a_AfterInsert ON S3A_STATIC_LOGS;
+  DISABLE TRIGGER trg_S3b_AfterInsert ON S3B_STATIC_LOGS;
+
+  -- Re-enable both
+  ENABLE TRIGGER trg_S3a_AfterInsert ON S3A_STATIC_LOGS;
+  ENABLE TRIGGER trg_S3b_AfterInsert ON S3B_STATIC_LOGS;

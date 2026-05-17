@@ -329,6 +329,15 @@ class SqlClient:
             cursor.execute(INSERT_GAS_TRANSACTION_SQL, (order_id, rfid_tag, license_plate, company, gas_type))
             conn.commit()
 
+    def get_picking_id_by_order(self, order_id: str) -> int | None:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT picking_id FROM sale_order WHERE name = %s", (order_id,)
+            )
+            row = cursor.fetchone()
+            return int(row[0]) if row else None
+
 
 def _require_env(key: str) -> str:
     val = os.environ.get(key)

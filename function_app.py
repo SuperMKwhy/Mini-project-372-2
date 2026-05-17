@@ -106,16 +106,28 @@ def odoo_s3_notify(req: func.HttpRequest) -> func.HttpResponse:
     except ValueError:
         return func.HttpResponse("Invalid JSON body.", status_code=400)
 
-    picking_id = body.get("picking_id")
-    if not picking_id:
-        return func.HttpResponse("Missing required field: picking_id.", status_code=400)
+    order_id = body.get("order_id")
+    if not order_id:
+        return func.HttpResponse("Missing required field: order_id.", status_code=400)
+
+    try:
+        sql = SqlClient.from_env()
+        picking_id = sql.get_picking_id_by_order(str(order_id))
+    except Exception as exc:
+        logging.exception("OdooS3Notify DB lookup failed.")
+        return func.HttpResponse(f"DB error: {exc}", status_code=500)
+
+    if picking_id is None:
+        return func.HttpResponse(
+            f"order_id '{order_id}' not found in sale_order.", status_code=404
+        )
 
     try:
         odoo = OdooClient.from_env()
-        odoo.notify_picking_done(int(picking_id))
-        logging.info(f"stock.picking {picking_id} updated to PLC_DONE.")
+        odoo.notify_picking_done(picking_id)
+        logging.info(f"order_id={order_id} -> picking_id={picking_id} updated to PLC_DONE.")
         return func.HttpResponse("OK", status_code=200)
 
     except Exception as exc:
-        logging.exception("OdooS3Notify failed.")
-        return func.HttpResponse(f"Error: {exc}", status_code=500)
+        logging.exception("OdooS3Notify Odoo call failed.")
+        return func.HttpResponse(f"Odoo error: {exc}", status_code=500)

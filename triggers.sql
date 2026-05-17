@@ -29,20 +29,20 @@ BEGIN
     DECLARE @picking_id INT;
     DECLARE @payload    NVARCHAR(MAX);
 
-    SELECT @picking_id = so.picking_id
-    FROM inserted i
-    LEFT JOIN sale_order so ON so.name = i.order_id;
-
-    IF @picking_id IS NULL
-    BEGIN
-        INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
-        VALUES ('trg_S3a_AfterInsert', NULL, 'picking_id not found in sale_order');
-        RETURN;
-    END
-
-    SET @payload = N'{"picking_id":' + CAST(@picking_id AS NVARCHAR) + N'}';
-
     BEGIN TRY
+        SELECT @picking_id = so.picking_id
+        FROM inserted i
+        LEFT JOIN sale_order so ON so.name = i.order_id;
+
+        IF @picking_id IS NULL
+        BEGIN
+            INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
+            VALUES ('trg_S3a_AfterInsert', NULL, 'picking_id not found in sale_order');
+            RETURN;
+        END
+
+        SET @payload = N'{"picking_id":' + CAST(@picking_id AS NVARCHAR) + N'}';
+
         EXEC sp_invoke_external_rest_endpoint
             @url     = N'https://your-app.azurewebsites.net/api/odoo-s3-notify?code=YOUR_KEY',
             @method  = 'POST',
@@ -50,8 +50,13 @@ BEGIN
             @payload = @payload;
     END TRY
     BEGIN CATCH
-        INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
-        VALUES ('trg_S3a_AfterInsert', @picking_id, ERROR_MESSAGE());
+        -- XACT_STATE() = -1 means the transaction is doomed; no DML allowed.
+        -- We skip logging in that case so the error does not propagate and kill the INSERT.
+        IF XACT_STATE() <> -1
+        BEGIN
+            INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
+            VALUES ('trg_S3a_AfterInsert', @picking_id, ERROR_MESSAGE());
+        END
     END CATCH
 END
 GO
@@ -69,20 +74,20 @@ BEGIN
     DECLARE @picking_id INT;
     DECLARE @payload    NVARCHAR(MAX);
 
-    SELECT @picking_id = so.picking_id
-    FROM inserted i
-    LEFT JOIN sale_order so ON so.name = i.order_id;
-
-    IF @picking_id IS NULL
-    BEGIN
-        INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
-        VALUES ('trg_S3b_AfterInsert', NULL, 'picking_id not found in sale_order');
-        RETURN;
-    END
-
-    SET @payload = N'{"picking_id":' + CAST(@picking_id AS NVARCHAR) + N'}';
-
     BEGIN TRY
+        SELECT @picking_id = so.picking_id
+        FROM inserted i
+        LEFT JOIN sale_order so ON so.name = i.order_id;
+
+        IF @picking_id IS NULL
+        BEGIN
+            INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
+            VALUES ('trg_S3b_AfterInsert', NULL, 'picking_id not found in sale_order');
+            RETURN;
+        END
+
+        SET @payload = N'{"picking_id":' + CAST(@picking_id AS NVARCHAR) + N'}';
+
         EXEC sp_invoke_external_rest_endpoint
             @url     = N'https://your-app.azurewebsites.net/api/odoo-s3-notify?code=YOUR_KEY',
             @method  = 'POST',
@@ -90,8 +95,13 @@ BEGIN
             @payload = @payload;
     END TRY
     BEGIN CATCH
-        INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
-        VALUES ('trg_S3b_AfterInsert', @picking_id, ERROR_MESSAGE());
+        -- XACT_STATE() = -1 means the transaction is doomed; no DML allowed.
+        -- We skip logging in that case so the error does not propagate and kill the INSERT.
+        IF XACT_STATE() <> -1
+        BEGIN
+            INSERT INTO webhook_error_log (trigger_name, picking_id, error_msg)
+            VALUES ('trg_S3b_AfterInsert', @picking_id, ERROR_MESSAGE());
+        END
     END CATCH
 END
 GO
