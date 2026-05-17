@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import os
+import random
+import string
 import pymssql
 
 from odoo_client import StockQuant, SaleOrder, SaleOrderLine
@@ -175,6 +177,44 @@ WHEN NOT MATCHED THEN
 """
 
 
+CREATE_GAS_TRANSACTION_SQL = """
+IF NOT EXISTS (
+    SELECT 1 FROM INFORMATION_SCHEMA.TABLES
+    WHERE TABLE_NAME = 'gas_transaction'
+)
+BEGIN
+    CREATE TABLE gas_transaction (
+        id            INT           NOT NULL IDENTITY(1,1) PRIMARY KEY,
+        order_id      NVARCHAR(50)  NOT NULL,
+        rfid_tag      NVARCHAR(50)  NOT NULL,
+        license_plate NVARCHAR(50)  NOT NULL,
+        company       NVARCHAR(50)  NOT NULL,
+        arrival_time  DATETIME2     NOT NULL DEFAULT SYSUTCDATETIME(),
+        gas_type      NVARCHAR(50)  NOT NULL
+    );
+END
+"""
+
+INSERT_GAS_TRANSACTION_SQL = """
+INSERT INTO gas_transaction (order_id, rfid_tag, license_plate, company, arrival_time, gas_type)
+VALUES (%s, %s, %s, %s, SYSUTCDATETIME(), %s)
+"""
+
+_THAI_PREFIXES = ["กท", "กข", "นบ", "สน", "บง", "ชน"]
+_GAS_COMPANIES = ["10021171", "10009691", "10000923", "10012345", "10067890"]
+
+
+def _random_license_plate() -> str:
+    prefix = random.choice(_THAI_PREFIXES)
+    digits_a = random.randint(10, 99)
+    digits_b = random.randint(1000, 9999)
+    return f"{prefix}.{digits_a}-{digits_b}"
+
+
+def _random_company() -> str:
+    return random.choice(_GAS_COMPANIES)
+
+
 class SqlClient:
     def __init__(self, server: str, database: str, username: str, password: str):
         self._server = server
@@ -274,6 +314,20 @@ class SqlClient:
             conn.commit()
 
         return len(rows)
+
+    def ensure_gas_transaction_table(self) -> None:
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(CREATE_GAS_TRANSACTION_SQL)
+            conn.commit()
+
+    def insert_gas_transaction(self, order_id: str, rfid_tag: str, gas_type: str) -> None:
+        license_plate = _random_license_plate()
+        company = _random_company()
+        with self._connect() as conn:
+            cursor = conn.cursor()
+            cursor.execute(INSERT_GAS_TRANSACTION_SQL, (order_id, rfid_tag, license_plate, company, gas_type))
+            conn.commit()
 
 
 def _require_env(key: str) -> str:

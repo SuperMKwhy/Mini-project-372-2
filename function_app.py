@@ -58,3 +58,39 @@ def sync_inventory(req: func.HttpRequest) -> func.HttpResponse:
     except Exception as exc:
         logging.exception("SyncInventory failed.")
         return func.HttpResponse(f"Error: {exc}", status_code=500)
+
+
+@app.function_name(name="IngestTransaction")
+@app.route(route="ingest-transaction", methods=["POST"], auth_level=func.AuthLevel.FUNCTION)
+def ingest_transaction(req: func.HttpRequest) -> func.HttpResponse:
+    logging.info("IngestTransaction triggered.")
+
+    try:
+        body = req.get_json()
+    except ValueError:
+        return func.HttpResponse("Invalid JSON body.", status_code=400)
+
+    order_id = body.get("order_id")
+    rfid_tag = body.get("rfid_tag")
+    gas_type = body.get("gas_type")
+
+    if not all([order_id, rfid_tag, gas_type]):
+        return func.HttpResponse(
+            "Missing required fields: order_id, rfid_tag, gas_type.",
+            status_code=400,
+        )
+
+    try:
+        sql = SqlClient.from_env()
+        sql.ensure_gas_transaction_table()
+        sql.insert_gas_transaction(
+            order_id=str(order_id),
+            rfid_tag=str(rfid_tag),
+            gas_type=str(gas_type),
+        )
+        logging.info(f"Inserted gas_transaction: order_id={order_id}")
+        return func.HttpResponse("OK", status_code=200)
+
+    except Exception as exc:
+        logging.exception("IngestTransaction failed.")
+        return func.HttpResponse(f"Error: {exc}", status_code=500)
