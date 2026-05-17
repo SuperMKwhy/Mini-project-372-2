@@ -180,10 +180,10 @@ WHEN NOT MATCHED THEN
 CREATE_GAS_TRANSACTION_SQL = """
 IF NOT EXISTS (
     SELECT 1 FROM INFORMATION_SCHEMA.TABLES
-    WHERE TABLE_NAME = 'gas_transaction'
+    WHERE TABLE_NAME = 'DB_TRUCK'
 )
 BEGIN
-    CREATE TABLE gas_transaction (
+    CREATE TABLE DB_TRUCK (
         id            INT           NOT NULL IDENTITY(1,1) PRIMARY KEY,
         order_id      NVARCHAR(50)  NOT NULL,
         rfid_tag      NVARCHAR(50)  NOT NULL,
@@ -196,7 +196,7 @@ END
 """
 
 INSERT_GAS_TRANSACTION_SQL = """
-INSERT INTO gas_transaction (order_id, rfid_tag, license_plate, company, arrival_time, gas_type)
+INSERT INTO DB_TRUCK (order_id, rfid_tag, license_plate, company, arrival_time, gas_type)
 VALUES (%s, %s, %s, %s, SYSUTCDATETIME(), %s)
 """
 
