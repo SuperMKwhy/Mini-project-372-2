@@ -1,0 +1,60 @@
+{
+  "name": "S3 Log → Odoo Notify",
+  "nodes": [
+    {
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "s3-log",
+        "responseMode": "onReceived",
+        "responseData": "success"
+      }
+    },
+    {
+      "id": "node-notify-odoo",
+      "name": "Notify Odoo",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [460, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://your-app.azurewebsites.net/api/odoo-s3-notify",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "code",
+              "value": "YOUR_FUNCTION_KEY"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "json",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "order_id",
+              "value": "={{ $json.body.order_id }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Notify Odoo", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
