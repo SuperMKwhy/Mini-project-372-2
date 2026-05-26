@@ -29,17 +29,26 @@ jobs:
         with:
           python-version: ${{ env.PYTHON_VERSION }}
 
+      - name: Create and start virtual environment
+        run: |
+          python -m venv venv
+          source venv/bin/activate
+
       - name: Install dependencies
-        run: pip install --target=".python_packages/lib/site-packages" -r requirements.txt
+        run: pip install -r requirements.txt
+
+      # Optional: Add step to run tests here
 
       - name: Zip artifact for deployment
-        run: zip -r release.zip . --exclude "*.git*"
+        run: zip release.zip ./* -r
 
       - name: Upload artifact for deployment job
         uses: actions/upload-artifact@v4
         with:
           name: python-app
-          path: release.zip
+          path: |
+            release.zip
+            !venv/
 
   deploy:
     runs-on: ubuntu-latest
@@ -54,12 +63,17 @@ jobs:
         with:
           name: python-app
 
+      - name: Unzip artifact for deployment
+        run: |
+          unzip release.zip
+          rm release.zip
+        
       - name: Login to Azure
         uses: azure/login@v2
         with:
-          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_F2C6FA37D182453194FE69CA990B8257 }}
-          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_D43491ED078248079AC8E7858FD88234 }}
-          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_F9CA51841A1F4B6C860D194677B27035 }}
+          client-id: ${{ secrets.AZUREAPPSERVICE_CLIENTID_9578496A3C64491D9D3A995C83BCB01D }}
+          tenant-id: ${{ secrets.AZUREAPPSERVICE_TENANTID_C2444662F20741C8B90FDC575F429C91 }}
+          subscription-id: ${{ secrets.AZUREAPPSERVICE_SUBSCRIPTIONID_45C5AA32545348A6AE8CBAB2AE249F0B }}
 
       - name: 'Deploy to Azure Functions'
         uses: Azure/functions-action@v1
@@ -67,5 +81,5 @@ jobs:
         with:
           app-name: 'mp-odoo-handler-re'
           slot-name: 'Production'
-          package: release.zip
+          package: ${{ env.AZURE_FUNCTIONAPP_PACKAGE_PATH }}
           
